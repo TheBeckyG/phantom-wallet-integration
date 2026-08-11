@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Phantom Wallet Integration</title>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.0.52/lib/index.iife.js"></script>
+  <script type="module" src="phantomIntegration.js"></script>
+</head>
+<body>
+  <button id="connectButton">Connect to Phantom Wallet</button>
+  <button id="signMessageButton">Sign a Message</button>
+  <button id="signTransactionButton">Sign a Transaction</button>
+  <button id="deepLinkButton">Open Phantom Onboarding</button>
+
+  <script type="module">
+    import { Phantom } from './phantomIntegration.js';
+    const { Connection, PublicKey, SystemProgram, Transaction } = window.solanaWeb3 || {};
+    let connectedAddress = null;
+
+    document.getElementById('connectButton').addEventListener('click', async () => {
+      try {
+        const accounts = await Phantom.requestAccount();
+        if (accounts && accounts.length > 0) {
+          connectedAddress = accounts[0];
+          console.log('Connected wallet address:', connectedAddress);
+          alert('Wallet connected successfully!');
+        } else {
+          console.log('No wallets found or user denied connection.');
+          alert('Failed to connect wallet.');
+        }
+      } catch (error) {
+        console.error('Error connecting to wallet:', error);
+        alert('An error occurred while connecting to the wallet.');
+      }
+    });
+
+    document.getElementById('signMessageButton').addEventListener('click', async () => {
+      try {
+        const message = 'Hello, Phantom!';
+        const signature = await Phantom.signMessage(message);
+        console.log('Signature:', signature);
+        alert('Message signed successfully!');
+      } catch (error) {
+        console.error('Error signing message:', error);
+        alert('An error occurred while signing the message.');
+      }
+    });
+
+    document.getElementById('signTransactionButton').addEventListener('click', async () => {
+      try {
+        if (!Connection || !PublicKey || !SystemProgram || !Transaction) {
+          throw new Error('Solana web3 dependencies are not available.');
+        }
+
+        if (!connectedAddress) {
+          throw new Error('Please connect your Phantom wallet first.');
+        }
+
+        const connection = new Connection('https://api.mainnet-beta.solana.com');
+        const fromPubkey = new PublicKey(connectedAddress);
+        const toPubkey = new PublicKey('Bjwqmm4hD3Tc5oyGpEXt5chC3mnTNmUJxau3rF3AybjR');
+
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey,
+            toPubkey,
+            lamports: 1000000,
+          })
+        );
+
+        const signedTransaction = await Phantom.signTransaction(transaction);
+        console.log('Signed Transaction:', signedTransaction);
+        alert('Transaction signed successfully!');
+      } catch (error) {
+        console.error('Error signing transaction:', error);
+        alert('An error occurred while signing the transaction.');
+      }
+    });
+
+    document.getElementById('deepLinkButton').addEventListener('click', () => {
+      try {
+        const deepLink = Phantom.deepLinkOnboard({
+          redirectUrl: window.location.href,
+          appUrl: window.location.origin,
+          cluster: 'mainnet-beta',
+        });
+        console.log('Phantom deep link opened:', deepLink);
+      } catch (error) {
+        console.error('Error opening Phantom onboarding deep link:', error);
+        alert('An error occurred while trying to open Phantom onboarding.');
+      }
+    });
+  </script>
+</body>
+</html>

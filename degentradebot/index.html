@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@DefiBot | DeGen Trade Bot</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      background: #050816;
+      color: #f8f9fb;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      background: radial-gradient(circle at top left, rgba(45, 96, 255, 0.35), transparent 25%),
+        radial-gradient(circle at bottom right, rgba(255, 111, 97, 0.22), transparent 25%),
+        #050816;
+    }
+
+    .page {
+      width: min(100%, 980px);
+      padding: 40px;
+      border-radius: 28px;
+      background: rgba(8, 13, 30, 0.96);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero {
+      display: grid;
+      gap: 28px;
+    }
+
+    .badge {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(80, 129, 255, 0.12);
+      color: #8fbaff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      width: fit-content;
+    }
+
+    .badge::before {
+      content: "@DefiBot";
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.8rem, 4vw, 4.4rem);
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+    }
+
+    p.lead {
+      max-width: 720px;
+      margin: 0;
+      color: #cfd8ff;
+      font-size: 1.1rem;
+      line-height: 1.9;
+    }
+
+    .grid {
+      display: grid;
+      gap: 24px;
+      margin-top: 32px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .card {
+      padding: 26px;
+      border-radius: 22px;
+      background: rgba(12, 18, 44, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 1.15rem;
+    }
+
+    .card p {
+      margin: 0;
+      line-height: 1.8;
+      color: #d7dae0;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 36px;
+      padding: 18px 26px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #377bff, #7a62ff);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 35px rgba(55, 123, 255, 0.28);
+    }
+
+    .footer {
+      margin-top: 48px;
+      color: #7b88a0;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <article class="page">
+    <section class="hero">
+      <span class="badge"></span>
+      <div>
+        <h1>DeGen Trade Bot</h1>
+        <p class="lead">Experience fast, efficient trading with <strong>@DefiBot</strong>. Built for traders who want low-latency executions, automated strategy routing, and seamless blockchain connectivity.</p>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Lightning-fast execution</h2>
+        <p>@DefiBot routes orders instantly, letting you execute trades with minimal slippage and optimal speed across decentralized markets.</p>
+      </div>
+      <div class="card">
+        <h2>On-chain efficiency</h2>
+        <p>Designed for DeFi traders, the bot delivers automated workflows on Solana and cross-chain environments without sacrificing speed.</p>
+      </div>
+      <div class="card">
+        <h2>Smart strategy</h2>
+        <p>Leverage smart order splitting, position monitoring, and intelligent trade management to stay ahead in volatile markets.</p>
+      </div>
+      <div class="card">
+        <h2>Safe and reliable</h2>
+        <p>Modern security principles and transparent execution are core to @DefiBot, giving traders confidence while they move quickly.</p>
+      </div>
+    </section>
+
+    <a href="#" class="cta">Launch @DefiBot</a>
+
+    <p class="footer">This page is a static showcase for <strong>@DefiBot</strong> on the DeGen Trade Bot landing experience.</p>
+  </article>
+</body>
+</html>
