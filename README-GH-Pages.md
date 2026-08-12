@@ -48,6 +48,7 @@ To test the exact files that the GitHub Action will deploy:
 npm run build
 
 # Serve the build folder (e.g., dist or public)
+npx serve dist
 
 ```
 
