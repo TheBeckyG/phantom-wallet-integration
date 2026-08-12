@@ -1,63 +1,38 @@
-name: Deploy and Configure GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
-    
+    branches:
+      - main # Or your default branch
+
+# Grant necessary permissions for GitHub Pages deployment
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
-# Ensure the workflow has permissions to push and manage Pages
-permissions:
-  contents: write
-  pages: write
+# Prevent concurrent deployments
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Add any build commands here (e.g., npm run build) if needed
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          fetch-depth: 0
-          persist-credentials: true
+          path: '.' # Point to your build output folder (e.g., './dist', './public', or '.' for root)
 
-      - name: Deploy to gh-pages using GH_PAGES_PAT (preferred)
-        if: ${{ secrets.GH_PAGES_PAT != '' }}
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GH_PAGES_PAT }}
-          publish_branch: gh-pages
-          publish_dir: ./
-          allow_empty_commit: true
-
-      - name: Deploy to gh-pages using GITHUB_TOKEN (fallback)
-        if: ${{ secrets.GH_PAGES_PAT == '' }}
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: ./
-          allow_empty_commit: true
-
-      - name: Configure GitHub Pages to use main root
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPO=${{ github.repository }}
-          echo "Setting GitHub Pages source to main:/"
-          curl -sX PUT -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/$REPO/pages \
-            -d '{"source":{"branch":"main","path":"/"}}' || true
-
-      - name: Show Pages status
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPO=${{ github.repository }}
-          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/$REPO/pages | jq || true
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
