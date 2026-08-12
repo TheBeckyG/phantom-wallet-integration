@@ -37,80 +37,113 @@ class BaseWalletProvider {
 
 class SolanaWalletAdapter extends BaseWalletProvider {
   async connect() {
-    if (typeof this.provider.connect === 'function') {
-      return this.provider.connect();
-    }
+    try {
+      const response = await this.request('connect');
+      if (typeof this.provider.connect === 'function') {
+        return this.provider.connect();
+      }
 
-    return this.request('connect');
+      return response;
+    } catch (error) {
+      throw new Error('Failed to connect wallet provider');
+    }
   }
 
   async requestAccount() {
-    const response = await this.connect();
+    try {
+      const response = await this.connect();
 
-    if (Array.isArray(response)) {
-      return response;
+      if (Array.isArray(response)) {
+        return response;
+      }
+
+      if (response?.publicKey) {
+        return [response.publicKey.toString()];
+      }
+
+      if (response?.address) {
+        return [response.address];
+      }
+
+      return [];
+    } catch (error) {
+      throw new Error('Failed to request wallet account');
     }
-
-    if (response?.publicKey) {
-      return [response.publicKey.toString()];
-    }
-
-    if (response?.address) {
-      return [response.address];
-    }
-
-    return [];
   }
 
   async disconnect() {
-    if (typeof this.provider.disconnect === 'function') {
-      return this.provider.disconnect();
-    }
+    try {
+      const response = await this.request('disconnect');
 
-    return this.request('disconnect');
+      if (typeof this.provider.disconnect === 'function') {
+        return this.provider.disconnect();
+      }
+
+      return response;
+    } catch (error) {
+      throw new Error('Failed to disconnect wallet provider');
+    }
   }
 
   async signMessage(message, encoding = 'utf8') {
-    const normalized = this.normalizeMessage(message);
+    try {
+      const normalized = this.normalizeMessage(message);
 
-    if (typeof this.provider.signMessage === 'function') {
-      return this.provider.signMessage(normalized, encoding);
+      if (typeof this.provider.signMessage === 'function') {
+        return this.provider.signMessage(normalized, encoding);
+      }
+
+      return this.request('signMessage', [normalized, { encoding }]);
+    } catch (error) {
+      throw new Error('Failed to sign message');
     }
-
-    return this.request('signMessage', [normalized, { encoding }]);
   }
 
   async signTransaction(transaction) {
-    if (typeof this.provider.signTransaction === 'function') {
-      return this.provider.signTransaction(transaction);
-    }
+    try {
+      if (typeof this.provider.signTransaction === 'function') {
+        return this.provider.signTransaction(transaction);
+      }
 
-    return this.request('signTransaction', [transaction]);
+      return this.request('signTransaction', [transaction]);
+    } catch (error) {
+      throw new Error('Failed to sign transaction');
+    }
   }
 
   async sendTransaction(transaction, connection, options = {}) {
-    // Prefer provider's native sign-and-send if available (Phantom supports this)
-    if (typeof this.provider.signAndSendTransaction === 'function') {
-      const result = await this.provider.signAndSendTransaction(transaction, options);
-      // provider may return { signature } or a string
-      const signature = result?.signature || result;
-      // Try to confirm using connection with latest blockhash to avoid deprecated API
+    try {
+      // Prefer provider's native sign-and-send if available (Phantom supports this)
+      if (typeof this.provider.signAndSendTransaction === 'function') {
+        const result = await this.provider.signAndSendTransaction(transaction, options);
+        const signature = result?.signature || result;
+
+        try {
+          const latest = await connection.getLatestBlockhash();
+          await connection.confirmTransaction({ signature, ...latest }, 'finalized');
+        } catch (e) {
+          // best-effort; ignore confirmation errors here
+        }
+
+        return signature;
+      }
+
+      // Fallback: sign locally then send raw transaction and confirm with latest blockhash
+      const signedTransaction = await this.signTransaction(transaction);
+      const rawTransaction = signedTransaction.serialize();
+      const signature = await connection.sendRawTransaction(rawTransaction, options);
+
       try {
         const latest = await connection.getLatestBlockhash();
         await connection.confirmTransaction({ signature, ...latest }, 'finalized');
       } catch (e) {
         // best-effort; ignore confirmation errors here
       }
-      return signature;
-    }
 
-    // Fallback: sign locally then send raw transaction and confirm with latest blockhash
-    const signedTransaction = await this.signTransaction(transaction);
-    const rawTransaction = signedTransaction.serialize();
-    const signature = await connection.sendRawTransaction(rawTransaction, options);
-    const latest = await connection.getLatestBlockhash();
-    await connection.confirmTransaction({ signature, ...latest }, 'finalized');
-    return signature;
+      return signature;
+    } catch (error) {
+      throw new Error('Failed to send transaction');
+    }
   }
 }
 
@@ -140,7 +173,7 @@ class Phantom {
       throw new Error('No wallet provider available to inject');
     }
 
-    const adapter = new Gu(provider);
+    const adapter = new SolanaWalletAdapter(provider);
     window.phantom = window.phantom || {};
     window.phantom.app = adapter;
     return adapter;
@@ -151,43 +184,59 @@ class Phantom {
   }
 
   static async requestAccount() {
-    const wallet = this.wallet;
+    try {
+      const wallet = this.wallet;
 
-    if (!wallet) {
-      throw new Error('Phantom wallet not detected');
+      if (!wallet) {
+        throw new Error('Phantom wallet not detected');
+      }
+
+      return await wallet.requestAccount();
+    } catch (error) {
+      throw new Error('Failed to request wallet account');
     }
-
-    return wallet.requestAccount();
   }
 
   static async signMessage(message) {
-    const wallet = this.wallet;
+    try {
+      const wallet = this.wallet;
 
-    if (!wallet) {
-      throw new Error('Phantom wallet not detected');
+      if (!wallet) {
+        throw new Error('Phantom wallet not detected');
+      }
+
+      return await wallet.signMessage(message);
+    } catch (error) {
+      throw new Error('Failed to sign message');
     }
-
-    return wallet.signMessage(message);
   }
 
   static async signTransaction(transaction) {
-    const wallet = this.wallet;
+    try {
+      const wallet = this.wallet;
 
-    if (!wallet) {
-      throw new Error('Phantom wallet not detected');
+      if (!wallet) {
+        throw new Error('Phantom wallet not detected');
+      }
+
+      return await wallet.signTransaction(transaction);
+    } catch (error) {
+      throw new Error('Failed to sign transaction');
     }
-
-    return wallet.signTransaction(transaction);
   }
 
   static async sendTransaction(transaction, connection, options = {}) {
-    const wallet = this.wallet;
+    try {
+      const wallet = this.wallet;
 
-    if (!wallet) {
-      throw new Error('Phantom wallet not detected');
+      if (!wallet) {
+        throw new Error('Phantom wallet not detected');
+      }
+
+      return await wallet.sendTransaction(transaction, connection, options);
+    } catch (error) {
+      throw new Error('Failed to send transaction');
     }
-
-    return wallet.sendTransaction(transaction, connection, options);
   }
 
   static createDeepLinkUrl({
@@ -196,7 +245,6 @@ class Phantom {
     cluster = DEFAULT_CLUSTER,
     alwaysOpenInApp = false,
   } = {}) {
-    // Use Phantom's browse deep-link to open a URL inside the mobile app browser
     const baseScheme = alwaysOpenInApp ? 'phantom://app/ul/browse/' : 'https://phantom.app/ul/browse/';
     const encoded = encodeURIComponent(redirectUrl);
     const params = new URLSearchParams({ app_url: appUrl, cluster });
