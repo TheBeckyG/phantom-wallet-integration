@@ -15,3 +15,44 @@ Manual enable steps (if needed):
 Published site example paths:
 - Root site: `https://thebeckyg.github.io/phantom-wallet-integration/`
 - DeGen page: `https://thebeckyg.github.io/phantom-wallet-integration/degentradebot/`
+
+## 🛠️ Local Development & Testing
+
+To test your site locally before pushing changes to GitHub:
+
+### Quick Preview (Python)
+If your repository contains static files (`index.html`, CSS, JS) without a build step:
+
+```bash
+# Run from the root of your project
+python3 -m http.server 8000
+```
+
+Open `http://localhost:8000` in your browser.
+
+### Node/NPM Preview
+If your site requires a build step (e.g., Vite, React, Jekyll):
+
+```bash
+# Install dependencies
+npm install
+
+# Run the local dev server
+npm run dev   # or npm start
+```
+
+### Verifying the Build Output
+To test the exact files that the GitHub Action will deploy:
+
+```bash
+# Generate the production build
+npm run build
+
+# Serve the build folder (e.g., dist or public)
+npx serve dist
+```
+
+### Optional Checklist for your README
+* **Deployment Method:** Built automatically using native GitHub Actions (`.github/workflows/deploy.yml`).
+* **Trigger:** Pushes to the `main` branch automatically deploy to GitHub Pages.
+* **Local Testing:** Running the local preview steps above before pushing.
