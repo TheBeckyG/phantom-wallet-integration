@@ -1,7 +1,7 @@
 const DEFAULT_PHANTOM_DEEP_LINK = 'https://phantom.app/ul/v1/connect';
 const DEFAULT_CLUSTER = 'mainnet-beta';
 
-class Oh {
+class BaseWalletProvider {
   constructor(provider) {
     this.provider = provider;
   }
@@ -35,7 +35,7 @@ class Oh {
   }
 }
 
-class Gu extends Oh {
+class SolanaWalletAdapter extends BaseWalletProvider {
   async connect() {
     if (typeof this.provider.connect === 'function') {
       return this.provider.connect();
@@ -89,20 +89,41 @@ class Gu extends Oh {
   }
 
   async sendTransaction(transaction, connection, options = {}) {
+    // Prefer provider's native sign-and-send if available (Phantom supports this)
+    if (typeof this.provider.signAndSendTransaction === 'function') {
+      const result = await this.provider.signAndSendTransaction(transaction, options);
+      // provider may return { signature } or a string
+      const signature = result?.signature || result;
+      // Try to confirm using connection with latest blockhash to avoid deprecated API
+      try {
+        const latest = await connection.getLatestBlockhash();
+        await connection.confirmTransaction({ signature, ...latest }, 'finalized');
+      } catch (e) {
+        // best-effort; ignore confirmation errors here
+      }
+      return signature;
+    }
+
+    // Fallback: sign locally then send raw transaction and confirm with latest blockhash
     const signedTransaction = await this.signTransaction(transaction);
     const rawTransaction = signedTransaction.serialize();
     const signature = await connection.sendRawTransaction(rawTransaction, options);
-    await connection.confirmTransaction(signature);
+    const latest = await connection.getLatestBlockhash();
+    await connection.confirmTransaction({ signature, ...latest }, 'finalized');
     return signature;
   }
 }
 
 class Phantom {
   static get provider() {
-    return window?.phantom?.app || window?.phantom?.solana || window?.solana || null;
+    return window?.phantom?.solana || window?.phantom?.app || window?.solana || null;
   }
 
   static get wallet() {
+    if (window?.phantom?.solana) {
+      return this.injectProvider(window.phantom.solana);
+    }
+
     if (window?.phantom?.app) {
       return window.phantom.app;
     }
@@ -126,7 +147,7 @@ class Phantom {
   }
 
   static isInstalled() {
-    return Boolean(window?.phantom?.app || window?.solana);
+    return Boolean(window?.phantom?.solana || window?.phantom?.app || window?.solana);
   }
 
   static async requestAccount() {
@@ -175,14 +196,11 @@ class Phantom {
     cluster = DEFAULT_CLUSTER,
     alwaysOpenInApp = false,
   } = {}) {
-    const baseUrl = alwaysOpenInApp ? 'phantom://app/ul/v1/connect' : DEFAULT_PHANTOM_DEEP_LINK;
-    const params = new URLSearchParams({
-      app_url: appUrl,
-      redirect_url: redirectUrl,
-      cluster,
-    });
-
-    return `${baseUrl}?${params.toString()}`;
+    // Use Phantom's browse deep-link to open a URL inside the mobile app browser
+    const baseScheme = alwaysOpenInApp ? 'phantom://app/ul/browse/' : 'https://phantom.app/ul/browse/';
+    const encoded = encodeURIComponent(redirectUrl);
+    const params = new URLSearchParams({ app_url: appUrl, cluster });
+    return `${baseScheme}${encoded}?${params.toString()}`;
   }
 
   static deepLinkOnboard(options = {}) {
@@ -220,4 +238,5 @@ class Phantom {
   }
 }
 
-export { Phantom, Oh, Gu };
+// Export legacy short names for backwards compatibility
+export { Phantom, BaseWalletProvider as Oh, SolanaWalletAdapter as Gu };
