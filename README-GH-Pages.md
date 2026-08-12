@@ -3,8 +3,9 @@ Deploy notes
 This repository contains static pages and a simple Phantom wallet demo.
 
 GitHub Pages configuration:
-- The workflow `.github/workflows/deploy.yml` publishes the repository root to the `gh-pages` branch on every push to `main`.
-- The workflow then attempts to set Pages source to `main` root by calling the GitHub Pages API. This step requires the `GITHUB_TOKEN` to have sufficient permissions — if it fails, go to the repository Settings → Pages and set the branch to `main` and folder to `/ (root)` manually.
+- The workflow `.github/workflows/deploy.yml` now uses the native GitHub Pages deployment pattern with `actions/upload-pages-artifact@v3` and `actions/deploy-pages@v4`.
+- It packages the repository root as a Pages artifact and deploys it directly, without requiring a separate `gh-pages` branch push.
+- If the deploy step still fails, go to the repository Settings → Pages and set the branch to `main` and folder to `/ (root)` manually.
 
 Manual enable steps (if needed):
 1. Go to: Settings → Pages
