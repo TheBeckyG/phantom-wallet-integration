@@ -48,6 +48,39 @@ async function main() {
     try { await dialog.accept(); } catch (e) { /* ignore */ }
   });
 
+  // Auto-handle extension popup pages or approval pages when they open
+  context.on('page', async (extensionPage) => {
+    try {
+      const url = extensionPage.url();
+      console.log('New page opened:', url);
+      if (/^(chrome-extension|moz-extension|ms-browser-extension):/.test(url) || url.includes('extensions') || url.includes('phantom')) {
+        // try clicking common approval buttons
+        const labels = ['Approve', 'Connect', 'Confirm', 'Sign', 'Allow', 'Approve & Continue'];
+        for (const label of labels) {
+          try {
+            const btn = await extensionPage.$(`button:has-text("${label}")`);
+            if (btn) {
+              console.log('Clicking extension button:', label);
+              await btn.click();
+              return;
+            }
+          } catch (e) { /* ignore */ }
+        }
+
+        // try generic click on first button
+        try {
+          const firstBtn = await extensionPage.$('button');
+          if (firstBtn) {
+            console.log('Clicking first button on extension page');
+            await firstBtn.click();
+          }
+        } catch (e) { /* ignore */ }
+      }
+    } catch (e) {
+      console.warn('Error handling extension page:', e);
+    }
+  });
+
   const url = process.env.DEMO_URL || 'http://localhost:8000/index.html';
   console.log('Navigating to', url);
   await page.goto(url, { waitUntil: 'domcontentloaded' });

@@ -1,0 +1,12 @@
+{
+  "name": "phantom-wallet-integration",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "playwright:create-profile": "node tests/playwright/create-profile.js",
+    "playwright:run": "node tests/playwright/run-phantom.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}
