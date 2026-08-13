@@ -5,13 +5,12 @@ const { chromium } = require('playwright');
 
 async function main() {
   const extArg = process.env.EXTENSION_PATH || process.argv[2];
-  if (!extArg) {
-    console.error('Usage: EXTENSION_PATH=/path/to/phantom/extension node run-phantom.js [extensionPath]');
+  const extensionPath = extArg ? path.resolve(extArg) : null;
+  if (!extensionPath && !process.env.USER_DATA_DIR) {
+    console.error('Usage: either set USER_DATA_DIR to an existing Chrome profile or EXTENSION_PATH to an unpacked extension directory');
     process.exit(1);
   }
-
-  const extensionPath = path.resolve(extArg);
-  if (!fs.existsSync(extensionPath)) {
+  if (extensionPath && !fs.existsSync(extensionPath)) {
     console.error('Extension path not found:', extensionPath);
     process.exit(1);
   }
@@ -25,12 +24,12 @@ async function main() {
   console.log('Launching Chromium with extension:', extensionPath);
   const launchOptions = {
     headless: false,
-    args: [
-      `--disable-extensions-except=${extensionPath}`,
-      `--load-extension=${extensionPath}`,
-      '--no-sandbox'
-    ],
+    args: ['--no-sandbox'],
   };
+
+  if (extensionPath) {
+    launchOptions.args.unshift(`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`);
+  }
 
   if (browserExecutable) {
     launchOptions.executablePath = browserExecutable;
