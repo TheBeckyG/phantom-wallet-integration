@@ -16,7 +16,7 @@ async function main() {
     process.exit(1);
   }
 
-  const userDataDir = path.join(os.tmpdir(), `playwright-phantom-profile-${Date.now()}`);
+  const userDataDir = process.env.USER_DATA_DIR || path.join(os.tmpdir(), `playwright-phantom-profile-${Date.now()}`);
   fs.mkdirSync(userDataDir, { recursive: true });
 
   // Allow using a custom browser executable (e.g., /Applications/Google Chrome.app)
