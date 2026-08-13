@@ -1,38 +1,43 @@
-name: Deploy to GitHub Pages
+name: Deploy and Configure GitHub Pages
 
 on:
   push:
-    branches:
-      - main # Or your default branch
-
-# Grant necessary permissions for GitHub Pages deployment
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Prevent concurrent deployments
-concurrency:
-  group: 'pages'
-  cancel-in-progress: true
+    branches: [ main ]
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # Add any build commands here (e.g., npm run build) if needed
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages (publish repo root)
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: '.' # Point to your build output folder (e.g., './dist', './public', or '.' for root)
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./
+          allow_empty_commit: true
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Configure GitHub Pages to use main root
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO=${{ github.repository }}
+          echo "Setting GitHub Pages source to main:/"
+          curl -sX PUT -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/$REPO/pages \
+            -d '{"source":{"branch":"main","path":"/"}}' || true
+
+      - name: Show Pages status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO=${{ github.repository }}
+          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/$REPO/pages | jq || true
